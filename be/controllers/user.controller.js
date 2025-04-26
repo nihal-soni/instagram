@@ -1,8 +1,8 @@
-import { User } from "../models/user.model"
+import { User } from "../models/user.model.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import getDataUri from "../utils/datauri";
-import cloudinary from "../utils/cloudinary";
+import getDataUri from "../utils/datauri.js";
+import cloudinary from "../utils/cloudinary.js";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export const register = async (req, res) => {
@@ -67,7 +67,7 @@ export const login = async (req, res) => {
             })
         }
 
-        user = {
+        const userdata = {
             _id: user._id,
             username: user.username,
             email: user.email,
@@ -76,19 +76,21 @@ export const login = async (req, res) => {
             followers: user.followers,
             followings: user.followings,
             posts: user.posts
-        }
+        };
+        
         const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "1d" });
-        return res.cookie('token', token,
-            {
-                httpOnly: true,
-                sameSite: 'strict',
-                maxAge: 1 * 24 * 60 * 60 * 1000,
-            }).json({
-                message: `Welcome back ${user.username}`,
-                success: true,
-                user
-            })
-
+        
+        return res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: process.env.NODE_ENV === "production", // add secure in production
+            maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
+        }).json({
+            message: `Welcome back ${user.username}`,
+            success: true,
+            userdata
+        });
+        
     } catch (error) {
         console.log(error)
     }
@@ -108,13 +110,17 @@ export const logout = async (req, res) => {
 export const getProfile = async (req, res) => {
     try {
         const userId = req.params.id;
-        let user = await User.findById(userId);
+        let user = await User.findById(userId).select('-__v -password');    
         return res.status(200).json({
             user,
             success: true
         })
     } catch (error) {
         console.log(error)
+        return res.status(500).json({
+            message: 'Failed to fetch user profile',
+            success: false
+        });
     }
 };
 
@@ -126,9 +132,9 @@ export const editProfile = async (req, res) => {
         let cloudResonse;
         if (profilePicture) {
             const fileUri = getDataUri(profilePicture)
-            await cloudinary.uploader.upload(fileUri)
+            cloudResonse = await cloudinary.uploader.upload(fileUri)
         }
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).select('-password');
         if (!user) {
             return res.status(404).json({
                 message: 'user not found',
