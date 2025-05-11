@@ -180,7 +180,13 @@ export const getPostComments = async (req, res) => {
 
 export const deletePost = async (req, res) => {
   try {
-    const postId = req.params.id
+    const postId = req.params.id;
+    const authorId = req.id;
+
+    const post = await Post.findById(postid);
+    if (!post) return res.status(404).json({ message: 'Post not found', success: false });
+
+    is (post.author.toString() )
   } catch (error) {
     console.log(error)
   }
