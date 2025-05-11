@@ -158,8 +158,29 @@ export const addcomment = async (req, res) => {
     await post.save();
 
     return res.status({
-      message: ''
+      message: 'Comment added successfully',
+      comment,
+      success: true
     })
+  } catch (error) {
+    console.log(error)
+  }
+}
+export const getPostComments = async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    const comments = await Comment.find({ post: postId }.populate('author', 'username, profilePicture'))
+
+    if (!comments) return res.status(404).json({ success: true, comments })
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export const deletePost = async (req, res) => {
+  try {
+    const postId = req.params.id
   } catch (error) {
     console.log(error)
   }
